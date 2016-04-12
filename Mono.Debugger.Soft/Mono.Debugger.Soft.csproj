@@ -118,7 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Mono.Cecil">
-      <HintPath>..\packages\Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.dll</HintPath>
+      <HintPath>$(SolutionDir)\packages\Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.dll</HintPath>
     </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System" />
