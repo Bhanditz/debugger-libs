@@ -2,7 +2,7 @@
 <package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>JetBrains.Mono.Debugging.Soft</id>
-    <version>1.0.20160410.1</version>
+    <version>$Version$</version>
     <title>JetBrains.Mono.Debugging.Soft</title>
     <authors>Mono team</authors>
     <owners>Mono team</owners>
@@ -16,7 +16,7 @@
     <dependencies>
       <dependency id="ICSharpCode.NRefactory" version="5.5.1" />
       <dependency id="Mono.Cecil" version="0.9.6.1" />
-      <dependency id="JetBrains.Mono.Debugging" version="1.0.20160410.1" />
+      <dependency id="JetBrains.Mono.Debugging" version="$Version$" />
     </dependencies>
   </metadata>
   <files>
