@@ -45,11 +45,11 @@
   <ItemGroup>
     <Reference Include="ICSharpCode.NRefactory">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\ICSharpCode.NRefactory.5.5.1\lib\Net40\ICSharpCode.NRefactory.dll</HintPath>
+      <HintPath>..\packages\JetBrains.ICSharpCode.NRefactory.5.5.1\lib\Net40\ICSharpCode.NRefactory.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.NRefactory.CSharp">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\ICSharpCode.NRefactory.5.5.1\lib\Net40\ICSharpCode.NRefactory.CSharp.dll</HintPath>
+      <HintPath>..\packages\JetBrains.ICSharpCode.NRefactory.5.5.1\lib\Net40\ICSharpCode.NRefactory.CSharp.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
