@@ -15,7 +15,7 @@
     <tags>mono debug debugger soft</tags>
     <dependencies>
       <dependency id="ICSharpCode.NRefactory" version="5.5.1" />
-      <dependency id="Mono.Cecil" version="0.9.6.1" />
+      <dependency id="JetBrains.Mono.Cecil" version="0.9.6.1" />
       <dependency id="JetBrains.Mono.Debugging" version="$Version$" />
     </dependencies>
   </metadata>
