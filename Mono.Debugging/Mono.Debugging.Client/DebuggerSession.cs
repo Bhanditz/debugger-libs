@@ -322,8 +322,10 @@ namespace Mono.Debugging.Client
 					try {
 						OnRun (startInfo);
 					} catch (Exception ex) {
-						ForceExit ();
-						if (!HandleException (ex))
+					  // should handle exception before raising Exit event because HandleException may ignore exceptions in Exited state
+					  var exceptionHandled = HandleException (ex);
+            ForceExit ();
+					  if (!exceptionHandled)
 							throw;
 					}
 				});
