@@ -43,11 +43,15 @@ namespace Mono.Debugging.Evaluation
 	/// </summary>
 	public class AsyncEvaluationTracker: RemoteFrameObject, IObjectValueUpdater, IDisposable
 	{
+		// dirty hack to globally disable evaluation on separate thread that causes a lot of races
+		// TODO: convert to a parameter of a debug session
+		public static bool UseSpecificThreadForEvaluation = true;
+
 		Dictionary<string, UpdateCallback> asyncCallbacks = new Dictionary<string, UpdateCallback> ();
 		Dictionary<string, ObjectValue> asyncResults = new Dictionary<string, ObjectValue> ();
 		int asyncCounter = 0;
 		int cancelTimestamp = 0;
-		TimedEvaluator runner = new TimedEvaluator ();
+		TimedEvaluator runner = new TimedEvaluator (UseSpecificThreadForEvaluation);
 		
 		public int WaitTime {
 			get { return runner.RunTimeout; }
