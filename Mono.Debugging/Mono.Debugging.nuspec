@@ -1,23 +1,20 @@
 <?xml version="1.0"?>
 <package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <id>JetBrains.Mono.Debugging</id>
+    <id>Mono.Debugging</id>
     <version>$Version$</version>
-    <title>JetBrains.Mono.Debugging</title>
+    <title>Mono.Debugging</title>
     <authors>Mono team</authors>
     <owners>Mono team</owners>
     <licenseUrl>http://opensource.org/licenses/mit-license.php</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectUrl>https://github.com/mono/debugger-libs</projectUrl>
-    <summary>(JetBrains repack) A set of base classes to implement different debuggers</summary>
+    <summary>A set of base classes to implement different debuggers</summary>
     <description>(JetBrains repack, branch https://github.com/JetBrains/debugger-libs/commits/rider) A set of base classes to implement different debuggers</description>
     <language>en-US</language>
     <tags>mono debug debugger debugging api</tags>
     <dependencies>
-      <dependency id="JetBrains.ICSharpCode.NRefactory" version="5.5.1" />
+      <dependency id="ICSharpCode.NRefactory" version="[5.5.1]"/>
     </dependencies>
   </metadata>
-  <files>
-    <file src="Mono.Debugging\bin\Release\Mono.Debugging.*" target="lib/net40" />
-  </files>
 </package>

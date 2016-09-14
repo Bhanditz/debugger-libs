@@ -1,25 +1,22 @@
 <?xml version="1.0"?>
 <package xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <id>JetBrains.Mono.Debugging.Soft</id>
+    <id>Mono.Debugging.Soft</id>
     <version>$Version$</version>
-    <title>JetBrains.Mono.Debugging.Soft</title>
+    <title>Mono.Debugging.Soft</title>
     <authors>Mono team</authors>
     <owners>Mono team</owners>
     <licenseUrl>http://opensource.org/licenses/mit-license.php</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <projectUrl>https://github.com/mono/debugger-libs</projectUrl>
-    <summary>(JetBrains repack) Several libraries which can be used to control the Mono debugger.</summary>
+    <summary>Several libraries which can be used to control the Mono debugger.</summary>
     <description>(JetBrains repack, branch https://github.com/JetBrains/debugger-libs/commits/rider) Several libraries which can be used to control the Mono debugger.</description>
     <language>en-US</language>
     <tags>mono debug debugger soft</tags>
     <dependencies>
-      <dependency id="JetBrains.Mono.Cecil" version="0.9.6.1" />
-      <dependency id="JetBrains.Mono.Debugging" version="$Version$" />
+      <dependency id="Mono.Cecil" version="[0.9.6.1]" />
+      <dependency id="Mono.Debugging" version="$Version$" />
+      <dependency id="Mono.Debugger.Soft" version="$Version$" />
     </dependencies>
   </metadata>
-  <files>
-    <file src="Mono.Debugger.Soft\bin\Release\Mono.Debugger.Soft.*" target="lib/net40" />
-    <file src="Mono.Debugging.Soft\bin\Release\Mono.Debugging.Soft.*" target="lib/net40" />
-  </files>
 </package>

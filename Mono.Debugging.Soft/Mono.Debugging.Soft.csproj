@@ -65,10 +65,10 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Mono.Cecil">
-      <HintPath>$(SolutionDir)\packages\JetBrains.Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.dll</HintPath>
+      <HintPath>$(SolutionDir)\packages\Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Cecil.Mdb">
-      <HintPath>$(SolutionDir)\packages\JetBrains.Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.Mdb.dll</HintPath>
+      <HintPath>$(SolutionDir)\packages\Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.Mdb.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
