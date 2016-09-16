@@ -71,7 +71,7 @@
       <HintPath>$(SolutionDir)\packages\Mono.Cecil.0.9.6.1\lib\net40\Mono.Cecil.Mdb.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Posix, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
-      <HintPath>..\..\..\packages\JetBrains.Mono.Posix.20160916.48\lib\net40\Mono.Posix.dll</HintPath>
+      <HintPath>$(SolutionDir)\packages\JetBrains.Mono.Posix.20160916.48\lib\net40\Mono.Posix.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
