@@ -1570,6 +1570,13 @@ namespace Mono.Debugging.Client
 			return obj != null ? OnWrapDebuggerObject (obj) : null;
 		}
 
+		  protected void RaiseStopEvent ()
+		  {
+			EventHandler<TargetEventArgs> targetEvent = TargetEvent;
+			if (targetEvent != null)
+			  targetEvent (this, new TargetEventArgs (TargetEventType.TargetStopped));
+		  }
+
 		/// <summary>
 		/// Called for every object that is obtained from the debugger engine.
 		/// Subclasses may want to create wrappers for some of those objects
