@@ -30,7 +30,6 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
-using Mono.CompilerServices.SymbolWriter;
 using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Client
@@ -1606,12 +1605,22 @@ namespace Mono.Debugging.Client
 			OnFetchFrames (threads);
 		}
 
-		public virtual void RemoveRunToCursorBreakpoints ()
+		public void RemoveRunToCursorBreakpoints ()
+		{
+			OnRemoveRunToCursorBreakpoints ();
+		}
+
+		public void InsertRunToCursorBreakpoint (string fileName, int line, int column)
+		{
+			OnInsertRunToCursorBreakpoint (fileName, line, column);
+		}
+
+		protected virtual void OnRemoveRunToCursorBreakpoints ()
 		{
 			Breakpoints.RemoveRunToCursorBreakpoints ();
 		}
 
-		public virtual void InsertRunToCursorBreakpoint (string fileName, int line, int column)
+		protected virtual void OnInsertRunToCursorBreakpoint (string fileName, int line, int column)
 		{
 			var breakpoint = new RunToCursorBreakpoint (fileName, line, column);
 			Breakpoints.Add (breakpoint);
