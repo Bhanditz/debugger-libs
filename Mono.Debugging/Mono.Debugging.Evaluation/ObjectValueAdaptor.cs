@@ -37,6 +37,7 @@ using Mono.Debugging.Backend;
 
 namespace Mono.Debugging.Evaluation
 {
+	//singleton for session
 	public abstract class ObjectValueAdaptor: IDisposable
 	{
 		readonly Dictionary<string, TypeDisplayData> typeDisplayData = new Dictionary<string, TypeDisplayData> ();

@@ -41,7 +41,7 @@ namespace Mono.Debugging.Evaluation
 	/// will then be made asynchronous and the Run method will immediately return an ObjectValue
 	/// with the Evaluating state.
 	/// </summary>
-	public class AsyncEvaluationTracker: RemoteFrameObject, IObjectValueUpdater, IDisposable
+	public class AsyncEvaluationTracker: IObjectValueUpdater, IDisposable
 	{
 		// dirty hack to globally disable evaluation on separate thread that causes a lot of races
 		// TODO: convert to a parameter of a debug session

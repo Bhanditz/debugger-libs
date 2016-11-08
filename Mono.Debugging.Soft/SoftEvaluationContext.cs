@@ -185,7 +185,7 @@ namespace Mono.Debugging.Soft
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();
 
-				var mc = new MethodCall (this, method, target, values, enableOutArgs);
+				var mc = new SoftMethodCall (this, method, target, values, enableOutArgs);
 				//Since runtime is returning NOT_SUSPENDED error if two methods invokes are executed
 				//at same time we have to lock invoking to prevent this...
 				lock (method.VirtualMachine) {

@@ -123,4 +123,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Mono.Debugger.Soft" />
+  </ItemGroup>
 </Project>

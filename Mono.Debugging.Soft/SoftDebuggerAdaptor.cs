@@ -33,7 +33,7 @@ using System.Reflection.Emit;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
-
+using System.Threading.Tasks;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Evaluation;
 using Mono.Debugging.Client;
@@ -2155,7 +2155,7 @@ namespace Mono.Debugging.Soft
 		}
 	}
 
-	class MethodCall: AsyncOperation
+	class SoftMethodCall: AsyncOperationBase
 	{
 		readonly InvokeOptions options = InvokeOptions.DisableBreakpoints | InvokeOptions.SingleThreaded;
 
@@ -2164,11 +2164,10 @@ namespace Mono.Debugging.Soft
 		readonly MethodMirror function;
 		readonly Value[] args;
 		readonly object obj;
-		IAsyncResult handle;
 		Exception exception;
 		InvokeResult result;
 		
-		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
+		public SoftMethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
 		{
 			this.ctx = ctx;
 			this.function = function;
@@ -2188,19 +2187,21 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
-		public override void Invoke ()
+		protected override Task InvokeAsyncImpl (CancellationToken token)
 		{
 			try {
+				Task task = null;
 				if (obj is ObjectMirror)
-					handle = ((ObjectMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+					task = ((ObjectMirror)obj).InvokeMethodAsyncWithResult (ctx.Thread, function, args, options, token);
 				else if (obj is TypeMirror)
-					handle = ((TypeMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+					task = ((TypeMirror)obj).InvokeMethodAsync (ctx.Thread, function, args, options);
 				else if (obj is StructMirror)
-					handle = ((StructMirror)obj).BeginInvokeMethod (ctx.Thread, function, args, options | InvokeOptions.ReturnOutThis, null, null);
+					task = ((StructMirror)obj).InvokeMethodAsync (ctx.Thread, function, args, options | InvokeOptions.ReturnOutThis);
 				else if (obj is PrimitiveValue)
-					handle = ((PrimitiveValue)obj).BeginInvokeMethod (ctx.Thread, function, args, options, null, null);
+					task = ((PrimitiveValue)obj).InvokeMethodAsync (ctx.Thread, function, args, options);
 				else
 					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + obj.GetType ().Name);
+				return task;
 			} catch (InvocationException ex) {
 				ctx.Session.StackVersion++;
 				exception = ex;
@@ -2210,6 +2211,8 @@ namespace Mono.Debugging.Soft
 				exception = ex;
 			}
 		}
+
+
 
 		public override void Abort ()
 		{
