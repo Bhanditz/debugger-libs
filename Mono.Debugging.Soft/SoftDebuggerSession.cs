@@ -628,7 +628,7 @@ namespace Mono.Debugging.Soft
 
 		protected override void OnDetach ()
 		{
-			throw new NotSupportedException ();
+			vm.Detach ();
 		}
 
 		protected override void OnExit ()
@@ -858,6 +858,8 @@ namespace Mono.Debugging.Soft
 
 			try {
 				thread.SetIP (location);
+			    StackVersion++;
+			    RaiseStopEvent ();
 			} catch (ArgumentException) {
 				throw new NotSupportedException ();
 			}
@@ -1555,8 +1557,6 @@ namespace Mono.Debugging.Soft
 			try {
 				vm.Resume ();
 			} catch (VMNotSuspendedException) {
-				if (type != EventType.VMStart && vm.Version.AtLeast (2, 2))
-					throw;
 			}
 		}
 		

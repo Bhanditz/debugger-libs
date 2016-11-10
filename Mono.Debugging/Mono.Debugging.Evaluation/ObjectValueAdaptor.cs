@@ -97,8 +97,8 @@ namespace Mono.Debugging.Evaluation
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			} catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
-				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
+			  DebuggerLoggingService.LogError ("Exception during evaluation", ex);
+			  return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			}
 		}
 		

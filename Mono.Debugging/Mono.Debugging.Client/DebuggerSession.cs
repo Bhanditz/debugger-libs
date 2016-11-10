@@ -1266,7 +1266,7 @@ namespace Mono.Debugging.Client
 		{
 			var s = GetBreakEventStatus (be);
 			if (s == BreakEventStatus.BindError || s == BreakEventStatus.Invalid)
-				OnDebuggerOutput (true, GetBreakEventErrorMessage (be) + ": " + GetBreakEventStatusMessage (be) + "\n");
+				OnDebuggerOutput (false, GetBreakEventErrorMessage (be) + ": " + GetBreakEventStatusMessage (be) + "\n");
 			Breakpoints.NotifyStatusChanged (be);
 		}
 		
@@ -1569,6 +1569,13 @@ namespace Mono.Debugging.Client
 		{
 			return obj != null ? OnWrapDebuggerObject (obj) : null;
 		}
+
+		  protected void RaiseStopEvent ()
+		  {
+			EventHandler<TargetEventArgs> targetEvent = TargetEvent;
+			if (targetEvent != null)
+			  targetEvent (this, new TargetEventArgs (TargetEventType.TargetStopped));
+		  }
 
 		/// <summary>
 		/// Called for every object that is obtained from the debugger engine.
