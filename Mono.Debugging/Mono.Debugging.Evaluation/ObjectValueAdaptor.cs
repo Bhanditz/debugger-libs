@@ -1327,9 +1327,9 @@ namespace Mono.Debugging.Evaluation
 			return display.ToString ();
 		}
 
-		public void AsyncExecute (AsyncOperation operation, int timeout)
+		public OperationResult<TValue> InvokeSync<TValue> (AsyncOperationBase<TValue> operation, int timeout)
 		{
-			asyncOperationManager.Invoke (operation, timeout);
+			return asyncOperationManager.Invoke (operation, timeout);
 		}
 
 		public ObjectValue CreateObjectValueAsync (string name, ObjectValueFlags flags, ObjectEvaluatorDelegate evaluator)
