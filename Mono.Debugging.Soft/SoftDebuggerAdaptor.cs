@@ -2166,7 +2166,7 @@ namespace Mono.Debugging.Soft
 		readonly object obj;
 		IAsyncResult handle;
 		Exception exception;
-		InvokeResult result;
+		IInvokeResult result;
 		
 		public MethodCall (SoftEvaluationContext ctx, MethodMirror function, object obj, Value[] args, bool enableOutArgs)
 		{
