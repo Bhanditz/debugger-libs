@@ -2194,6 +2194,10 @@ namespace Mono.Debugging.Soft
 			}
 		}
 
+		protected override void AfterCancelledImpl (int elapsedAfterCancelMs)
+		{
+		}
+
 		protected override Task<OperationResult<Value>> InvokeAsyncImpl (CancellationToken token)
 		{
 			try {
@@ -2204,8 +2208,8 @@ namespace Mono.Debugging.Soft
 				var tcs = new TaskCompletionSource<OperationResult<Value>> ();
 				invokeAsyncResult = (IInvokeAsyncResult)obj.BeginInvokeMethod (ctx.Thread, function, args, optionsToInvoke, ar => {
 					try {
-						token.ThrowIfCancellationRequested ();
 						var endInvokeResult = obj.EndInvokeMethodWithResult (ar);
+						token.ThrowIfCancellationRequested ();
 						tcs.SetResult (new SoftOperationResult (endInvokeResult.Result, false, endInvokeResult.OutArgs));
 					}
 					catch (InvocationException ex) {

@@ -1369,7 +1369,7 @@ namespace Mono.Debugging.Evaluation
 				return ObjectValue.CreateError (ctx.ExpressionValueSource, new ObjectPath (exp), "", ex.Message, ObjectValueFlags.None);
 			}
 			catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
+				DebuggerLoggingService.LogError ("Exception in GetExpressionValue()", ex);
 				return ObjectValue.CreateUnknown (exp);
 			}
 		}

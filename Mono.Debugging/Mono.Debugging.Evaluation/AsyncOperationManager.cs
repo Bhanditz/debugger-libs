@@ -12,7 +12,19 @@ namespace Mono.Debugging.Evaluation
 		readonly HashSet<IAsyncOperationBase> tasks = new HashSet<IAsyncOperationBase> ();
 		bool disposed = false;
 		CancellationTokenSource global = new CancellationTokenSource ();
+		const int ShortCancelTimeout = 100;
+		const int LongCancelTimeout = 100;
 
+		static bool IsOperationCancelledException (Exception e)
+		{
+			if (e is OperationCanceledException)
+				return true;
+			var aggregateException = e as AggregateException;
+
+			if (aggregateException != null && aggregateException.InnerExceptions.OfType<OperationCanceledException> ().Any ())
+				return true;
+			return false;
+		}
 
 		public OperationResult<TValue> Invoke<TValue> (AsyncOperationBase<TValue> mc, int timeout)
 		{
@@ -21,10 +33,12 @@ namespace Mono.Debugging.Evaluation
 
 			Task<OperationResult<TValue>> task;
 			CancellationTokenSource cts;
+			var description = mc.Description;
 			lock (tasks) {
 				if (disposed)
 					throw new ObjectDisposedException ("Already disposed");
 				cts = CancellationTokenSource.CreateLinkedTokenSource (global.Token);
+				DebuggerLoggingService.LogMessage (string.Format("Starting invoke for {0}", description));
 				task = mc.InvokeAsync (cts.Token);
 				tasks.Add (mc);
 			}
@@ -35,19 +49,32 @@ namespace Mono.Debugging.Evaluation
 				}
 			}, cts.Token);
 
+			bool cancelledAfterTimeout = false;
 			try {
 				if (task.Wait (timeout)) {
+					DebuggerLoggingService.LogMessage (string.Format("Invoke {0} succeeded in {1} ms", description, timeout));
 					return task.Result;
 				}
+				DebuggerLoggingService.LogMessage (string.Format("Invoke {0} timed out after {1} ms. Cancelling.", description, timeout));
 				cts.Cancel ();
-				WaitAfterCancel (task, mc.Description);
+				try {
+					WaitAfterCancel (mc);
+				}
+				catch (Exception e) {
+					if (IsOperationCancelledException (e)) {
+						DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} was cancelled after timeout", description));
+						cancelledAfterTimeout = true;
+					}
+					throw;
+				}
+				DebuggerLoggingService.LogMessage (string.Format("{0} cancelling timed out", description));
 				throw new TimeOutException ();
 			}
-			catch (OperationCanceledException) {
-				throw new EvaluatorAbortedException ();
-			}
-			catch (AggregateException e) {
-				if (e.InnerExceptions.OfType<OperationCanceledException> ().Any ()) {
+			catch (Exception e) {
+				if (IsOperationCancelledException (e)) {
+					if (cancelledAfterTimeout)
+						throw new TimeOutException ();
+					DebuggerLoggingService.LogMessage (string.Format("Invoke {0} was cancelled outside before timeout", description));
 					throw new EvaluatorAbortedException ();
 				}
 				throw;
@@ -57,22 +84,31 @@ namespace Mono.Debugging.Evaluation
 
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged = delegate {  };
 
-		void WaitAfterCancel (Task op, string desc)
+		void WaitAfterCancel (IAsyncOperationBase op)
 		{
-			if (!op.Wait (500)) {
-				try {
-					BusyStateChanged (this, new BusyStateEventArgs {IsBusy = true, Description = desc});
-					op.Wait (2000);
+			var desc = op.Description;
+			DebuggerLoggingService.LogMessage (string.Format ("Waiting for cancel of invoke {0}", desc));
+			try {
+				if (!op.RawTask.Wait (ShortCancelTimeout)) {
+					try {
+						BusyStateChanged (this, new BusyStateEventArgs {IsBusy = true, Description = desc});
+						op.RawTask.Wait (LongCancelTimeout);
+					}
+					finally {
+						BusyStateChanged (this, new BusyStateEventArgs {IsBusy = false, Description = desc});
+					}
 				}
-				finally {
-					BusyStateChanged (this, new BusyStateEventArgs {IsBusy = false, Description = desc});
-				}
+			}
+			finally {
+				DebuggerLoggingService.LogMessage (string.Format ("Calling AfterCancelled() for {0}", desc));
+				op.AfterCancelled (ShortCancelTimeout + LongCancelTimeout);
 			}
 		}
 
 
 		public void AbortAll ()
 		{
+			DebuggerLoggingService.LogMessage ("Aborting all the current invocations");
 			List<IAsyncOperationBase> copy;
 			CancellationTokenSource oldGlobal;
 			lock (tasks) {
@@ -85,7 +121,18 @@ namespace Mono.Debugging.Evaluation
 
 			oldGlobal.Cancel();
 			foreach (var task in copy) {
-				WaitAfterCancel (task.RawTask, task.Description);
+				var taskDescription = task.Description;
+				try {
+					WaitAfterCancel (task);
+				}
+				catch (Exception e) {
+					if (IsOperationCancelledException (e)) {
+						DebuggerLoggingService.LogMessage (string.Format ("Invocation of {0} cancelled in AbortAll()", taskDescription));
+					}
+					else {
+						DebuggerLoggingService.LogError (string.Format ("Invocation of {0} thrown an exception in AbortAll()", taskDescription), e);
+					}
+				}
 			}
 		}
 

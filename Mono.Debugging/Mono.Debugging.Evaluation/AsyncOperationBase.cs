@@ -23,7 +23,7 @@ namespace Mono.Debugging.Evaluation
 		{
 			if (!result.ResultIsException)
 				return result;
-			var exceptionTypeName = ctx.Adapter.GetValueTypeName(ctx, result.Result);
+			var exceptionTypeName = ctx.Adapter.GetValueTypeName (ctx, result.Result);
 			throw new EvaluatorExceptionThrownException (result.Result, exceptionTypeName);
 		}
 	}
@@ -32,14 +32,34 @@ namespace Mono.Debugging.Evaluation
 	{
 		Task RawTask { get; }
 		string Description { get; }
+		void AfterCancelled (int elapsedAfterCancelMs);
 	}
 
 	public abstract class AsyncOperationBase<TValue> : IAsyncOperationBase
 	{
 		public Task<OperationResult<TValue>> Task { get; protected set; }
 
-		public Task RawTask { get {return Task; } }
+		public Task RawTask
+		{
+			get
+			{
+				return Task;
+			}
+		}
+
 		public abstract string Description { get; }
+
+		public void AfterCancelled (int elapsedAfterCancelMs)
+		{
+			try {
+				AfterCancelledImpl (elapsedAfterCancelMs);
+			}
+			catch (Exception e) {
+				DebuggerLoggingService.LogError ("AfterCancelledImpl() thrown an exception", e);
+			}
+		}
+
+		protected abstract void AfterCancelledImpl (int elapsedAfterCancelMs);
 
 		public Task<OperationResult<TValue>> InvokeAsync (CancellationToken token)
 		{
