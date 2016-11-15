@@ -13,16 +13,20 @@ namespace Mono.Debugging.Evaluation
 		bool disposed = false;
 		CancellationTokenSource global = new CancellationTokenSource ();
 		const int ShortCancelTimeout = 100;
-		const int LongCancelTimeout = 100;
+		const int LongCancelTimeout = 1000;
 
-		static bool IsOperationCancelledException (Exception e)
+		static bool IsOperationCancelledException (Exception e, int depth = 4)
 		{
 			if (e is OperationCanceledException)
 				return true;
 			var aggregateException = e as AggregateException;
 
-			if (aggregateException != null && aggregateException.InnerExceptions.OfType<OperationCanceledException> ().Any ())
-				return true;
+			if (depth > 0 && aggregateException != null) {
+				foreach (var innerException in aggregateException.InnerExceptions) {
+					if (IsOperationCancelledException (innerException, depth - 1))
+						return true;
+				}
+			}
 			return false;
 		}
 
