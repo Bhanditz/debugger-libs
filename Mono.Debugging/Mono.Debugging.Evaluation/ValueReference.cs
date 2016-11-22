@@ -115,7 +115,7 @@ namespace Mono.Debugging.Evaluation
 				return DC.ObjectValue.CreateError (this, new ObjectPath (Name), "", ex.Message, Flags);
 			}
 			catch (Exception ex) {
-				Context.WriteDebuggerError (ex);
+				DebuggerLoggingService.LogError ("Exception in CreateObjectValue()", ex);
 				return DC.ObjectValue.CreateUnknown (Name);
 			}
 		}
