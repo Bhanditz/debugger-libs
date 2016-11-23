@@ -9,9 +9,20 @@ namespace Mono.Debugging.Evaluation
 {
 	public class AsyncOperationManager
 	{
-		readonly HashSet<IAsyncOperationBase> tasks = new HashSet<IAsyncOperationBase> ();
+		class OperationData
+		{
+			public IAsyncOperationBase Operation { get; private set; }
+			public CancellationTokenSource TokenSource { get; private set; }
+
+			public OperationData (IAsyncOperationBase operation, CancellationTokenSource tokenSource)
+			{
+				Operation = operation;
+				TokenSource = tokenSource;
+			}
+		}
+
+		readonly HashSet<OperationData> currentOperations = new HashSet<OperationData> ();
 		bool disposed = false;
-		CancellationTokenSource global = new CancellationTokenSource ();
 		const int ShortCancelTimeout = 100;
 		const int LongCancelTimeout = 1000;
 
@@ -36,30 +47,24 @@ namespace Mono.Debugging.Evaluation
 				throw new ArgumentOutOfRangeException("timeout", timeout, "timeout must be greater than 0");
 
 			Task<OperationResult<TValue>> task;
-			CancellationTokenSource cts;
 			var description = mc.Description;
-			lock (tasks) {
+			var cts = new CancellationTokenSource ();
+			var operationData = new OperationData (mc, cts);
+			lock (currentOperations) {
 				if (disposed)
 					throw new ObjectDisposedException ("Already disposed");
-				cts = CancellationTokenSource.CreateLinkedTokenSource (global.Token);
 				DebuggerLoggingService.LogMessage (string.Format("Starting invoke for {0}", description));
 				task = mc.InvokeAsync (cts.Token);
-				tasks.Add (mc);
+				currentOperations.Add (operationData);
 			}
-
-			task.ContinueWith (tsk => {
-				lock (tasks) {
-					tasks.Remove (mc);
-				}
-			}, cts.Token);
 
 			bool cancelledAfterTimeout = false;
 			try {
 				if (task.Wait (timeout)) {
-					DebuggerLoggingService.LogMessage (string.Format("Invoke {0} succeeded in {1} ms", description, timeout));
+					DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} succeeded in {1} ms", description, timeout));
 					return task.Result;
 				}
-				DebuggerLoggingService.LogMessage (string.Format("Invoke {0} timed out after {1} ms. Cancelling.", description, timeout));
+				DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} timed out after {1} ms. Cancelling.", description, timeout));
 				cts.Cancel ();
 				try {
 					WaitAfterCancel (mc);
@@ -71,17 +76,22 @@ namespace Mono.Debugging.Evaluation
 					}
 					throw;
 				}
-				DebuggerLoggingService.LogMessage (string.Format("{0} cancelling timed out", description));
+				DebuggerLoggingService.LogMessage (string.Format ("{0} cancelling timed out", description));
 				throw new TimeOutException ();
 			}
 			catch (Exception e) {
 				if (IsOperationCancelledException (e)) {
 					if (cancelledAfterTimeout)
 						throw new TimeOutException ();
-					DebuggerLoggingService.LogMessage (string.Format("Invoke {0} was cancelled outside before timeout", description));
+					DebuggerLoggingService.LogMessage (string.Format ("Invoke {0} was cancelled outside before timeout", description));
 					throw new EvaluatorAbortedException ();
 				}
 				throw;
+			}
+			finally {
+				lock (currentOperations) {
+					currentOperations.Remove (operationData);
+				}
 			}
 		}
 
@@ -113,28 +123,32 @@ namespace Mono.Debugging.Evaluation
 		public void AbortAll ()
 		{
 			DebuggerLoggingService.LogMessage ("Aborting all the current invocations");
-			List<IAsyncOperationBase> copy;
-			CancellationTokenSource oldGlobal;
-			lock (tasks) {
+			List<OperationData> copy;
+			lock (currentOperations) {
 				if (disposed) throw new ObjectDisposedException ("Already disposed");
-				copy = tasks.ToList ();
-				oldGlobal = global;
-				tasks.Clear ();
-				global = new CancellationTokenSource ();
+				copy = currentOperations.ToList ();
+				currentOperations.Clear ();
 			}
 
-			oldGlobal.Cancel();
-			foreach (var task in copy) {
-				var taskDescription = task.Description;
+			CancelOperations (copy, true);
+		}
+
+		void CancelOperations (List<OperationData> operations, bool wait)
+		{
+			foreach (var operationData in operations) {
+				var taskDescription = operationData.Operation.Description;
 				try {
-					WaitAfterCancel (task);
+					operationData.TokenSource.Cancel ();
+					if (wait) {
+						WaitAfterCancel (operationData.Operation);
+					}
 				}
 				catch (Exception e) {
 					if (IsOperationCancelledException (e)) {
-						DebuggerLoggingService.LogMessage (string.Format ("Invocation of {0} cancelled in AbortAll()", taskDescription));
+						DebuggerLoggingService.LogMessage (string.Format ("Invocation of {0} cancelled in CancelOperations()", taskDescription));
 					}
 					else {
-						DebuggerLoggingService.LogError (string.Format ("Invocation of {0} thrown an exception in AbortAll()", taskDescription), e);
+						DebuggerLoggingService.LogError (string.Format ("Invocation of {0} thrown an exception in CancelOperations()", taskDescription), e);
 					}
 				}
 			}
@@ -143,12 +157,15 @@ namespace Mono.Debugging.Evaluation
 
 		public void Dispose ()
 		{
-			lock (tasks) {
+			List<OperationData> copy;
+			lock (currentOperations) {
 				if (disposed) throw new ObjectDisposedException ("Already disposed");
 				disposed = true;
+				copy = currentOperations.ToList ();
+				currentOperations.Clear ();
 			}
-
-			global.Cancel ();
+			// don't wait on dispose
+			CancelOperations (copy, wait: false);
 		}
 	}
 }

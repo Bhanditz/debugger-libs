@@ -74,7 +74,7 @@ namespace Mono.Debugging.Evaluation
 					throw;
 				}
 				catch (Exception e) {
-					DebuggerLoggingService.LogMessage (e.Message);
+					DebuggerLoggingService.LogMessage ("Exception in CancelImpl(): {0}", e.Message);
 				}
 			});
 			Task = InvokeAsyncImpl (token);
