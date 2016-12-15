@@ -29,6 +29,7 @@ using Mono.Debugging.Evaluation;
 using Mono.Debugger.Soft;
 using DC = Mono.Debugging.Client;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Mono.Debugging.Soft
 {
@@ -132,7 +133,7 @@ namespace Mono.Debugging.Soft
 		{
 			return RuntimeInvoke (method, target, values, true, out outArgs);
 		}
-		
+
 		Value RuntimeInvoke (MethodMirror method, object target, Value[] values, bool enableOutArgs, out Value[] outArgs)
 		{
 			outArgs = null;
@@ -141,7 +142,7 @@ namespace Mono.Debugging.Soft
 				var mparams = method.GetParameters ();
 				if (mparams.Length != values.Length)
 					throw new EvaluatorException ("Invalid number of arguments when calling: " + method.Name);
-				
+
 				for (int n = 0; n < mparams.Length; n++) {
 					var tm = mparams[n].ParameterType;
 					if (tm.IsValueType || tm.IsPrimitive)
@@ -184,6 +185,11 @@ namespace Mono.Debugging.Soft
 				return method.Evaluate (target is TypeMirror ? null : (Value) target, values);
 			} catch (NotSupportedException) {
 				AssertTargetInvokeAllowed ();
+				var threadState = Thread.ThreadState;
+				if (threadState != ThreadState.Running) {
+					DC.DebuggerLoggingService.LogMessage ("Thread state before evaluation is {0}", threadState);
+					throw new EvaluatorException ("Evaluation is not allowed in this thread state");
+				}
 				var invocableMirror = target as IInvocableMethodOwnerMirror;
 				if (invocableMirror == null)
 					throw new ArgumentException ("Soft debugger method calls cannot be invoked on objects of type " + target.GetType ().Name);
