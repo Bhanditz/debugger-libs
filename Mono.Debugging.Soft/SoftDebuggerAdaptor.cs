@@ -1230,6 +1230,16 @@ namespace Mono.Debugging.Soft
 			types.CopyTo (childTypes);
 		}
 
+		protected override ObjectValue CreateObjectValueImpl (EvaluationContext ctx, IObjectValueSource source, ObjectPath path, object obj, ObjectValueFlags flags)
+		{
+			try {
+				return base.CreateObjectValueImpl (ctx, source, path, obj, flags);
+			}
+			catch (NotSupportedException e) {
+				throw new EvaluatorException ("Evaluation is not supported by the runtime version");
+			}
+		}
+
 		protected override IEnumerable<ValueReference> OnGetParameters (EvaluationContext ctx)
 		{
 			var soft = (SoftEvaluationContext) ctx;
