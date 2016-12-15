@@ -35,6 +35,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Mono.Debugger.Soft;
+using Mono.Debugging.Backend;
 using Mono.Debugging.Evaluation;
 using Mono.Debugging.Client;
 
