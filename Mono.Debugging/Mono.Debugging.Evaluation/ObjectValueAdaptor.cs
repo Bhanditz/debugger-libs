@@ -31,7 +31,7 @@ using System.Text;
 using System.Reflection;
 using System.Diagnostics;
 using System.Collections.Generic;
-
+using System.Threading;
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
 
@@ -58,6 +58,9 @@ namespace Mono.Debugging.Evaluation
 		public event EventHandler<BusyStateEventArgs> BusyStateChanged;
 
 		static readonly Dictionary<string, string> CSharpTypeNames = new Dictionary<string, string> ();
+
+		readonly List<CancellationTokenSource> cancellationTokenSources = new List<CancellationTokenSource> ();
+		readonly object cancellationTokensLock = new object ();
 		readonly AsyncEvaluationTracker asyncEvaluationTracker = new AsyncEvaluationTracker ();
 		readonly AsyncOperationManager asyncOperationManager = new AsyncOperationManager ();
 
@@ -105,7 +108,7 @@ namespace Mono.Debugging.Evaluation
 			} catch (EvaluatorException ex) {
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			} catch (Exception ex) {
-				ctx.WriteDebuggerError (ex);
+				DebuggerLoggingService.LogError ("Exception in CreateObjectValue()", ex);
 				return ObjectValue.CreateFatalError (path.LastName, ex.Message, flags);
 			}
 		}
@@ -519,6 +522,17 @@ namespace Mono.Debugging.Evaluation
 
 		public virtual ObjectValue[] GetObjectValueChildren (EvaluationContext ctx, IObjectSource objectSource, object type, object obj, int firstItemIndex, int count, bool dereferenceProxy)
 		{
+			return PerformWithCancellationToken (token => {
+				try {
+					return GetObjectValueChildrenImpl (ctx.WithCancellationToken (token), objectSource, type, obj, firstItemIndex, count, dereferenceProxy);
+				} catch (OperationCanceledException) {
+					return new[] {ObjectValue.CreateUnknown ("Evaluation aborted")};
+				}
+			});
+		}
+
+		ObjectValue[] GetObjectValueChildrenImpl (EvaluationContext ctx, IObjectSource objectSource, object type, object obj, int firstItemIndex, int count, bool dereferenceProxy)
+		{
 			if (obj is EvaluationResult)
 				return new ObjectValue[0];
 			
@@ -534,7 +548,20 @@ namespace Mono.Debugging.Evaluation
 				if (NullableHasValue (ctx, type, obj)) {
 					ValueReference value = NullableGetValue (ctx, type, obj);
 
-					return GetObjectValueChildren (ctx, objectSource, value.Type, value.Value, firstItemIndex, count, dereferenceProxy);
+					try {
+						return GetObjectValueChildren (ctx, objectSource, value.Type, value.Value, firstItemIndex, count, dereferenceProxy);
+					} catch (ImplicitEvaluationDisabledException) {
+						return new[] {ObjectValue.CreateImplicitNotSupported (value, new ObjectPath (value.Name), GetDisplayTypeName (GetTypeName (ctx, value.Type)), value.Flags)};
+					} catch (NotSupportedExpressionException ex) {
+						return new[] {ObjectValue.CreateNotSupported (value, new ObjectPath (value.Name), GetDisplayTypeName (GetTypeName (ctx, value.Type)), ex.Message, value.Flags)};
+					} catch (EvaluatorExceptionThrownException ex) {
+						return new [] {ObjectValue.CreateEvaluationException (ctx, value, new ObjectPath (value.Name), ex)};
+					} catch (EvaluatorException ex) {
+						return new [] {ObjectValue.CreateError (value, new ObjectPath (value.Name), "", ex.Message, value.Flags)};
+					} catch (Exception ex) {
+						DebuggerLoggingService.LogError ("Exception in GetObjectValueChildren()", ex);
+						return new[] {ObjectValue.CreateError (null, new ObjectPath (value.Name), GetDisplayTypeName (GetTypeName (ctx, value.Type)), ex.Message, value.Flags)};
+					}
 				}
 
 				return new ObjectValue[0];
@@ -574,6 +601,7 @@ namespace Mono.Debugging.Evaluation
 			object tdataType = type;
 			
 			foreach (ValueReference val in list) {
+				ctx.CancellationToken.ThrowIfCancellationRequested ();
 				try {
 					object decType = val.DeclaringType;
 					if (decType != null && decType != tdataType) {
@@ -598,6 +626,14 @@ namespace Mono.Debugging.Evaluation
 						names.Disambiguate (val, oval);
 						values.Add (oval);
 					}
+				} catch (ImplicitEvaluationDisabledException) {
+					values.Add (ObjectValue.CreateImplicitNotSupported (val, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), val.Flags));
+				} catch (NotSupportedExpressionException ex) {
+					values.Add (ObjectValue.CreateNotSupported (val, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
+				} catch (EvaluatorExceptionThrownException ex) {
+					values.Add (ObjectValue.CreateEvaluationException (ctx, val, new ObjectPath (val.Name), ex));
+				} catch (EvaluatorException ex) {
+					values.Add (ObjectValue.CreateError (val, new ObjectPath (val.Name), "", ex.Message, val.Flags));
 				} catch (Exception ex) {
 					DebuggerLoggingService.LogError ("Exception in GetObjectValueChildren()", ex);
 					values.Add (ObjectValue.CreateError (null, new ObjectPath (val.Name), GetDisplayTypeName (GetTypeName (ctx, val.Type)), ex.Message, val.Flags));
@@ -1353,9 +1389,39 @@ namespace Mono.Debugging.Evaluation
 
 		public void CancelAsyncOperations ( )
 		{
+			CancelTokens ();
 			asyncEvaluationTracker.Stop ();
 			asyncOperationManager.AbortAll ();
 			asyncEvaluationTracker.WaitForStopped ();
+		}
+
+		void CancelTokens ()
+		{
+			lock (cancellationTokensLock) {
+				foreach (var cancellationTokenSource in cancellationTokenSources) {
+					try {
+						cancellationTokenSource.Cancel();
+					} catch (Exception e) {
+						DebuggerLoggingService.LogError ("Exception when cancelling operation", e);
+					}
+				}
+				cancellationTokenSources.Clear ();
+			}
+		}
+
+		internal T PerformWithCancellationToken<T> (Func<CancellationToken, T> func)
+		{
+			var cancellationTokenSource = new CancellationTokenSource ();
+			lock (cancellationTokensLock) {
+				cancellationTokenSources.Add (cancellationTokenSource);
+			}
+			try {
+				return func(cancellationTokenSource.Token);
+			} finally {
+				lock (cancellationTokensLock) {
+					cancellationTokenSources.Remove (cancellationTokenSource);
+				}
+			}
 		}
 
 		public ObjectValue GetExpressionValue (EvaluationContext ctx, string exp)
